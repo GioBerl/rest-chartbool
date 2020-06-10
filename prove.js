@@ -7,9 +7,10 @@ $(document).ready(function () {
         url: baseUrl,
         success: function (response) {
             drawLines(response);
+            drawPie(response);
         },
         error: function (err) {
-            console.log("errore");
+            console.error("errore");
         },
     });
 
@@ -50,6 +51,7 @@ $(document).ready(function () {
         //faccio la stessa cosa per i valori che questa volta sono l'y dei pallini
         var totalSalesForMonth = Object.values(salesForMonth); //[5960, 15240, 13790, ...]
 
+        // DISEGNO GRAFICO A LINEE
         var ctx = $("#lines-chart")[0].getContext("2d");
         var myChart = new Chart(ctx, {
             type: "line",
@@ -57,11 +59,9 @@ $(document).ready(function () {
                 labels: months, //ASSE X
                 datasets: [
                     {
-                        // label: "fatturato mensile", //meglio title nelle options
                         data: totalSalesForMonth, // pallini
                         fill: false, //non riempire area sotto
                         lineTension: 0, //linee rette
-                        backgroundColor: "black",
                         //tutti quei colori mi danno fastidio
                         backgroundColor: "rgba(255, 0, 0, 0.822)", //colore PALLINI
                         borderColor: "rgba(46, 0, 253, 0.582)", //colore LINEE
@@ -86,6 +86,79 @@ $(document).ready(function () {
                         },
                     ],
                 },
+            },
+        });
+    }
+
+    function drawPie(arrayData) {
+        //devo vedere quante vendite ha fatto ogni venditore in percentuale rispetto alle vendite totali
+
+        // quindi mi servono le vendite totali
+        // e le vendite di ogni venditore
+        // una cosa del tipo salesSalesman = {'Gio': 2500, 'Giu':500 ...} e un contatore delle vendite totali
+        var totalSales = 0;
+        var salesSalesman = {};
+
+        //estraggo gli oggetti dell'array
+        arrayData.forEach(function (singleData) {
+            // console.log(singleData);
+            var amount = singleData.amount; //numero
+            var salesman = singleData.salesman; //stringa
+
+            totalSales += amount; //incremento l'amount totale ad ogni ciclo
+            //mi chiedo se l'oggetto salesSalesman contiene la key salesman, se si incremento il value con amount, altrimenti lo inizializzo con il value amount
+            salesSalesman.hasOwnProperty(salesman)
+                ? (salesSalesman[salesman] += amount)
+                : (salesSalesman[salesman] = amount);
+        });
+
+        //adesso ho le vendite totali e le vendite di ogni venditore quindi posso recuperare la percentuale
+
+        var percentageArray = []; //array che rappresenta i pezzi di torta
+        for (var salesman in salesSalesman) {
+            var singleSale = salesSalesman[salesman];
+            var percentage = ((singleSale / totalSales) * 100).toFixed(3);
+            percentageArray.push(percentage);
+        }
+
+        salesmanArray = Object.keys(salesSalesman);
+
+        // DISEGNO GRAFICO A TORTA
+        var ctx = $("#pie-chart")[0].getContext("2d");
+        var myChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: salesmanArray, //ASSE X qui dovranno essere i venditori
+                datasets: [
+                    {
+                        // label: "# of Votes",
+                        data: percentageArray, //valori pezzi di torta (le percentuali)
+                        backgroundColor: [
+                            "rgba(255, 99, 132, 0.2)",
+                            "rgba(54, 162, 235, 0.2)",
+                            "rgba(255, 206, 86, 0.2)",
+                            "rgba(75, 255, 192, 0.2)",
+                        ],
+                        borderColor: [
+                            "rgba(255, 99, 132, 1)",
+                            "rgba(54, 162, 235, 1)",
+                            "rgba(255, 206, 86, 1)",
+                            "rgba(75, 255, 192, 1)",
+                        ],
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                // scales: {
+                //     yAxes: [
+                //         {
+                //             ticks: {
+                //                 beginAtZero: true,
+                //             },
+                //         },
+                //     ],
+                // },
             },
         });
     }
