@@ -64,8 +64,10 @@ $(document).ready(function () {
                         lineTension: 0, //linee rette
                         //tutti quei colori mi danno fastidio
                         backgroundColor: "rgba(255, 0, 0, 0.822)", //colore PALLINI
+                        pointRadius: 5,
+                        pointStyle: "rectRounded",
                         borderColor: "rgba(46, 0, 253, 0.582)", //colore LINEE
-                        borderWidth: 1,
+                        borderWidth: 3,
                     },
                 ],
             },
@@ -117,7 +119,7 @@ $(document).ready(function () {
         var percentageArray = []; //array che rappresenta i pezzi di torta
         for (var salesman in salesSalesman) {
             var singleSale = salesSalesman[salesman];
-            var percentage = ((singleSale / totalSales) * 100).toFixed(3);
+            var percentage = ((singleSale / totalSales) * 100).toFixed(1);
             percentageArray.push(percentage);
         }
 
@@ -151,17 +153,25 @@ $(document).ready(function () {
                             "rgba(255, 206, 86, 1)",
                             "rgba(75, 192, 192, 1)",
                         ],
+                        hoverBorderWidth: 10,
                         borderWidth: 1,
                     },
                 ],
             },
             options: {
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                },
                 title: {
                     display: true,
                     text: "Percentage Sales ",
                 },
                 legend: {
                     position: "bottom",
+                    labels: {
+                        boxWidth: 10,
+                    },
                 },
             },
         });
