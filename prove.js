@@ -10,61 +10,34 @@ $(document).ready(function () {
             drawPie(response);
         },
         error: function (err) {
-            console.error("errore");
+            console.log("error");
         },
     });
 
+    //CLICK BOTTONE
+    $("button").on("click", function () {
+        var name = $("#salesman option:selected").text();
+        console.log(name);
+    });
+
     function drawLines(arrayData) {
-        //definisco un oggetto che avra' come key il mese e come value il numero di vendite (inizializzate a 0)
-        var salesForMonth = {
-            January: 0,
-            February: 0,
-            March: 0,
-            April: 0,
-            May: 0,
-            June: 0,
-            July: 0,
-            August: 0,
-            September: 0,
-            October: 0,
-            November: 0,
-            December: 0,
-        };
-
-        //estraggo gli oggetti dell'array
-        arrayData.forEach(function (singleData) {
-            // console.log(singleData);
-            var amount = singleData.amount; //numero
-            var date = singleData.date; //stringa
-            var salesman = singleData.salesman; //stringa
-            //utilizzo moment per vedere il mese
-            var month = moment(date, "DD-MM-YYYY");
-            var nameMonth = month.format("MMMM");
-            console.log(amount, date, salesman, nameMonth);
-
-            //per ogni oggetto devo incrementare l'amount relativo al mese
-            salesForMonth[nameMonth] += amount;
-        });
-
-        //estraggo le chiavi dall'oggetto salesForMonth per creare l'array che sara' l'asse x della mia chart
-        var months = Object.keys(salesForMonth); //["January", "February", "March", ...]
-        //faccio la stessa cosa per i valori che questa volta sono l'y dei pallini
-        var totalSalesForMonth = Object.values(salesForMonth); //[5960, 15240, 13790, ...]
-
+        //in computedData ho il return dell'oggetto contenente l'array di mesi e quello dei dati di vendita
+        var computedData = prepareLinesData(arrayData);
+        // console.log(computedData);
         // DISEGNO GRAFICO A LINEE
         var ctx = $("#lines-chart")[0].getContext("2d");
         var myChart = new Chart(ctx, {
             type: "line",
             data: {
-                labels: months, //ASSE X
+                labels: computedData.labels, //ASSE X
                 datasets: [
                     {
-                        data: totalSalesForMonth, // pallini
+                        data: computedData.data, // pallini
                         fill: false, //non riempire area sotto
                         lineTension: 0, //linee rette
                         //tutti quei colori mi danno fastidio
                         backgroundColor: "rgba(255, 0, 0, 0.822)", //colore PALLINI
-                        pointRadius: 5,
+                        pointRadius: 10,
                         pointStyle: "rectRounded",
                         borderColor: "rgba(46, 0, 253, 0.582)", //colore LINEE
                         borderWidth: 3,
@@ -159,6 +132,13 @@ $(document).ready(function () {
                 ],
             },
             options: {
+                tooltips: {
+                    callbacks: {
+                        afterBody: function () {
+                            return `%`; //return a string that you wish to append
+                        },
+                    },
+                },
                 animation: {
                     animateScale: true,
                     animateRotate: true,
@@ -175,5 +155,44 @@ $(document).ready(function () {
                 },
             },
         });
+    }
+
+    function prepareLinesData(arrayOfData) {
+        //definisco un oggetto che avra' come key il mese e come value il numero di vendite (inizializzate a 0)
+        var salesForMonth = {
+            January: 0,
+            February: 0,
+            March: 0,
+            April: 0,
+            May: 0,
+            June: 0,
+            July: 0,
+            August: 0,
+            September: 0,
+            October: 0,
+            November: 0,
+            December: 0,
+        };
+        //estraggo gli oggetti dell'array
+        for (var i = 0; i < arrayOfData.length; i++) {
+            // console.log(singleData);
+            var amount = arrayOfData[i].amount; //numero
+            var date = arrayOfData[i].date; //stringa
+            var salesman = arrayOfData[i].salesman; //stringa
+            //utilizzo moment per vedere il mese
+            var month = moment(date, "DD-MM-YYYY");
+            var nameMonth = month.format("MMMM");
+            // console.log(amount, date, salesman, nameMonth);
+
+            //per ogni oggetto devo incrementare l'amount relativo al mese
+            salesForMonth[nameMonth] += amount;
+
+            //estraggo le chiavi dall'oggetto salesForMonth per creare l'array che sara' l'asse x della mia chart
+            var months = Object.keys(salesForMonth); //["January", "February", "March", ...]
+            //faccio la stessa cosa per i valori che questa volta sono l'y dei pallini
+            var totalSalesForMonth = Object.values(salesForMonth); //[5960, 15240, 13790, ...]
+        }
+
+        return { labels: months, data: totalSalesForMonth };
     }
 });
