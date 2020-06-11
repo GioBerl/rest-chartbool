@@ -16,9 +16,46 @@ $(document).ready(function () {
 
     //CLICK BOTTONE
     $("button").on("click", function () {
+        //la post request vuole i dati in forma { salesman: "Marco", amount: 9000, date: "12/02/2017" };
+
+        //quindi recupero il nome
         var name = $("#salesman option:selected").text();
-        console.log(name);
+        var nameVal = $("#salesman option:selected").val();
+
+        //la data (il mese per semplicita')
+        var month = $("#months option:selected").text();
+        var monthVal = $("#months option:selected").val();
+        //trasformo la data nel formato per la post request
+        var newDate = moment(month, "MMM").format("01/MM/2017"); //01/01/2017
+        // e l'amount !come intero
+        var amount = parseInt($("input").val());
+        // console.log(name, newDate, amount);
+        //creo un oggetto che poi passero alla funzione postRequest(...) come parametro
+        var dataToSend = { salesman: name, amount: amount, date: newDate };
+        //verifico che tutti i dati siano compilati
+        if (!nameVal || !monthVal || !amount || amount < 0) {
+            alert(
+                "devi compilare correttamente tutti i campi prima di aggiungere "
+            );
+        } else {
+            postRequest(dataToSend);
+        }
     });
+
+    function postRequest(dataToPost) {
+        // console.log(dataToPost);
+        $.ajax({
+            method: "POST",
+            url: baseUrl,
+            data: dataToPost,
+            success: function (response) {
+                location.reload();
+            },
+            error: function (err) {
+                console.log("errore");
+            },
+        });
+    }
 
     function drawLines(arrayData) {
         //in computedData ho il return dell'oggetto contenente l'array di mesi e quello dei dati di vendita
@@ -35,7 +72,6 @@ $(document).ready(function () {
                         data: computedData.data, // pallini
                         fill: false, //non riempire area sotto
                         lineTension: 0, //linee rette
-                        //tutti quei colori mi danno fastidio
                         backgroundColor: "rgba(255, 0, 0, 0.822)", //colore PALLINI
                         pointRadius: 10,
                         pointStyle: "rectRounded",
@@ -80,23 +116,26 @@ $(document).ready(function () {
             var amount = singleData.amount; //numero
             var salesman = singleData.salesman; //stringa
 
-            totalSales += amount; //incremento l'amount totale ad ogni ciclo
+            totalSales += parseInt(amount); //incremento l'amount totale ad ogni ciclo
             //mi chiedo se l'oggetto salesSalesman contiene la key salesman, se si incremento il value con amount, altrimenti lo inizializzo con il value amount
             salesSalesman.hasOwnProperty(salesman)
-                ? (salesSalesman[salesman] += amount)
-                : (salesSalesman[salesman] = amount);
+                ? (salesSalesman[salesman] += parseInt(amount))
+                : (salesSalesman[salesman] = parseInt(amount));
         });
 
         //adesso ho le vendite totali e le vendite di ogni venditore quindi posso recuperare la percentuale
 
-        var percentageArray = []; //array che rappresenta i pezzi di torta
+        // var percentageArray = []; //array che rappresenta i pezzi di torta
         for (var salesman in salesSalesman) {
             var singleSale = salesSalesman[salesman];
             var percentage = ((singleSale / totalSales) * 100).toFixed(1);
-            percentageArray.push(percentage);
+            // percentageArray.push(percentage);
+            salesSalesman[salesman] = percentage;
         }
+        // console.log(salesSalesman);
 
         salesmanArray = Object.keys(salesSalesman);
+        percentageArray = Object.values(salesSalesman);
 
         // DISEGNO GRAFICO A TORTA
         var ctx = $("#pie-chart")[0].getContext("2d");
@@ -177,7 +216,7 @@ $(document).ready(function () {
         for (var i = 0; i < arrayOfData.length; i++) {
             // console.log(singleData);
             var amount = arrayOfData[i].amount; //numero
-            var date = arrayOfData[i].date; //stringa
+            var date = arrayOfData[i].date; //stringa "04/03/2017"
             var salesman = arrayOfData[i].salesman; //stringa
             //utilizzo moment per vedere il mese
             var month = moment(date, "DD-MM-YYYY");
@@ -185,7 +224,7 @@ $(document).ready(function () {
             // console.log(amount, date, salesman, nameMonth);
 
             //per ogni oggetto devo incrementare l'amount relativo al mese
-            salesForMonth[nameMonth] += amount;
+            salesForMonth[nameMonth] += parseInt(amount);
 
             //estraggo le chiavi dall'oggetto salesForMonth per creare l'array che sara' l'asse x della mia chart
             var months = Object.keys(salesForMonth); //["January", "February", "March", ...]
