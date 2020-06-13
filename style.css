@@ -12,3 +12,7 @@
     display: flex;
     align-items: center;
 }
+
+color {
+    color: rgba(255, 0, 0, 0.2);
+}

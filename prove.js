@@ -1,37 +1,38 @@
 $(document).ready(function () {
-    //recupero i dati
-    var baseUrl = "http://157.230.17.132:4003/sales";
+    baseUrl = "http://157.230.17.132:4003/sales";
+    var bgCustomPie = [
+        "rgba(240, 12, 61, 0.2)",
+        "rgba(213, 12, 240, 0.2)",
+        "rgba(12, 35, 240, 0.2)",
+        "rgba(12, 206, 240, 0.2)",
+        "rgba(39, 240, 12, 0.2)",
+        "rgba(206, 240, 12, 0.2)",
+    ];
 
-    $.ajax({
-        method: "GET",
-        url: baseUrl,
-        success: function (response) {
-            drawLines(response);
-            drawPie(response);
-        },
-        error: function (err) {
-            console.log("error");
-        },
-    });
+    var hoverAndBorder = [
+        "rgba(240, 12, 61, 1)",
+        "rgba(213, 12, 240, 1)",
+        "rgba(12, 35, 240, 1)",
+        "rgba(12, 206, 240, 1)",
+        "rgba(39, 240, 12, 1)",
+        "rgba(206, 240, 12, 1)",
+    ];
 
-    //CLICK BOTTONE
     $("button").on("click", function () {
         //la post request vuole i dati in forma { salesman: "Marco", amount: 9000, date: "12/02/2017" };
 
         //quindi recupero il nome
-        var name = $("#salesman option:selected").text();
         var nameVal = $("#salesman option:selected").val();
 
-        //la data (il mese per semplicita')
-        var month = $("#months option:selected").text();
+        //la data (il numero del mese per semplicita')
         var monthVal = $("#months option:selected").val();
         //trasformo la data nel formato per la post request
-        var newDate = moment(month, "MMM").format("01/MM/2017"); //01/01/2017
-        // e l'amount !come intero
+        var newDate = moment(monthVal, "MM").format("01/MM/2017"); //01/01/2017
+        // e l'amount
         var amount = parseInt($("input").val());
         // console.log(name, newDate, amount);
         //creo un oggetto che poi passero alla funzione postRequest(...) come parametro
-        var dataToSend = { salesman: name, amount: amount, date: newDate };
+        var dataToSend = { salesman: nameVal, amount: amount, date: newDate };
         //verifico che tutti i dati siano compilati
         if (!nameVal || !monthVal || !amount || amount < 0) {
             alert(
@@ -39,17 +40,21 @@ $(document).ready(function () {
             );
         } else {
             postRequest(dataToSend);
+            //pulisco le select e l'input
+            $("#salesman").val("");
+            $("#months").val("");
+            $("input").val("");
+            // console.log(dataToSend);
         }
     });
 
-    function postRequest(dataToPost) {
-        // console.log(dataToPost);
+    function postRequest(data) {
         $.ajax({
             method: "POST",
             url: baseUrl,
-            data: dataToPost,
+            data: data,
             success: function (response) {
-                location.reload();
+                getRequest();
             },
             error: function (err) {
                 console.log("errore");
@@ -57,124 +62,52 @@ $(document).ready(function () {
         });
     }
 
-    function drawLines(arrayData) {
-        //in computedData ho il return dell'oggetto contenente l'array di mesi e quello dei dati di vendita
-        var computedData = prepareLinesData(arrayData);
-        // console.log(computedData);
-        // DISEGNO GRAFICO A LINEE
-        var ctx = $("#lines-chart")[0].getContext("2d");
-        var myChart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: computedData.labels, //ASSE X
-                datasets: [
-                    {
-                        data: computedData.data, // pallini
-                        fill: false, //non riempire area sotto
-                        lineTension: 0, //linee rette
-                        backgroundColor: "rgba(255, 0, 0, 0.822)", //colore PALLINI
-                        pointRadius: 10,
-                        pointStyle: "rectRounded",
-                        borderColor: "rgba(46, 0, 253, 0.582)", //colore LINEE
-                        borderWidth: 3,
-                    },
-                ],
+    getRequest();
+
+    function getRequest() {
+        $.ajax({
+            method: "GET",
+            url: baseUrl,
+            success: function (response) {
+                drawPie(response);
+                drawLines(response);
             },
-            options: {
-                title: {
-                    display: true,
-                    text: "total sales for months",
-                },
-                legend: {
-                    display: false,
-                },
-                scales: {
-                    yAxes: [
-                        {
-                            ticks: {
-                                beginAtZero: true,
-                            },
-                        },
-                    ],
-                },
+            error: function (err) {
+                console.error(`errore ${err.status}: ${err.statusText}`);
             },
         });
     }
 
-    function drawPie(arrayData) {
-        //devo vedere quante vendite ha fatto ogni venditore in percentuale rispetto alle vendite totali
-
-        // quindi mi servono le vendite totali
-        // e le vendite di ogni venditore
-        // una cosa del tipo salesSalesman = {'Gio': 2500, 'Giu':500 ...} e un contatore delle vendite totali
-        var totalSales = 0;
-        var salesSalesman = {};
-
-        //estraggo gli oggetti dell'array
-        arrayData.forEach(function (singleData) {
-            // console.log(singleData);
-            var amount = singleData.amount; //numero
-            var salesman = singleData.salesman; //stringa
-
-            totalSales += parseInt(amount); //incremento l'amount totale ad ogni ciclo
-            //mi chiedo se l'oggetto salesSalesman contiene la key salesman, se si incremento il value con amount, altrimenti lo inizializzo con il value amount
-            salesSalesman.hasOwnProperty(salesman)
-                ? (salesSalesman[salesman] += parseInt(amount))
-                : (salesSalesman[salesman] = parseInt(amount));
-        });
-
-        //adesso ho le vendite totali e le vendite di ogni venditore quindi posso recuperare la percentuale
-
-        // var percentageArray = []; //array che rappresenta i pezzi di torta
-        for (var salesman in salesSalesman) {
-            var singleSale = salesSalesman[salesman];
-            var percentage = ((singleSale / totalSales) * 100).toFixed(1);
-            // percentageArray.push(percentage);
-            salesSalesman[salesman] = percentage;
-        }
-        // console.log(salesSalesman);
-
-        salesmanArray = Object.keys(salesSalesman);
-        percentageArray = Object.values(salesSalesman);
-
-        // DISEGNO GRAFICO A TORTA
-        var ctx = $("#pie-chart")[0].getContext("2d");
-        var myChart = new Chart(ctx, {
+    function drawPie(arrayFromRequest) {
+        var arrayDataToDraw = prepareDataForPie(arrayFromRequest); //mi ritorna OGGETTO contenente come values gli array da passare alla chart ---> {allSalesmans: Array(4), amountForSeller: Array(4)}
+        // console.log(arrayDataToDraw, "PIE");
+        var ctx = document.getElementById("pie-chart").getContext("2d");
+        var pieChart = new Chart(ctx, {
             type: "pie",
             data: {
-                labels: salesmanArray, //ASSE X qui dovranno essere i venditori
+                labels: arrayDataToDraw.allSalesmans,
                 datasets: [
                     {
-                        // label: "# of Votes",
-                        data: percentageArray, //valori pezzi di torta (le percentuali)
-                        backgroundColor: [
-                            "rgba(255, 99, 132, 0.2)",
-                            "rgba(54, 162, 235, 0.2)",
-                            "rgba(255, 206, 86, 0.2)",
-                            "rgba(75, 255, 192, 0.2)",
-                        ],
-                        borderColor: [
-                            "rgba(255, 99, 132, 1)",
-                            "rgba(54, 162, 235, 1)",
-                            "rgba(255, 206, 86, 1)",
-                            "rgba(75, 255, 192, 1)",
-                        ],
-                        hoverBackgroundColor: [
-                            "rgba(255,99,132, 1)",
-                            "rgba(54, 162, 235, 1)",
-                            "rgba(255, 206, 86, 1)",
-                            "rgba(75, 192, 192, 1)",
-                        ],
-                        hoverBorderWidth: 10,
+                        label: "Amount of Sells for Salesman",
+                        data: arrayDataToDraw.amountForSeller,
+                        backgroundColor: bgCustomPie,
+                        borderColor: hoverAndBorder,
                         borderWidth: 1,
+                        hoverBorderWidth: 10,
+                        hoverBackgroundColor: hoverAndBorder,
                     },
                 ],
             },
             options: {
                 tooltips: {
                     callbacks: {
-                        afterBody: function () {
-                            return `%`; //return a string that you wish to append
+                        label: function (tooltipItem, data) {
+                            var nameSalesman = data.labels[tooltipItem.index];
+                            var sells =
+                                data.datasets[tooltipItem.datasetIndex].data[
+                                    tooltipItem.index
+                                ];
+                            return `${nameSalesman}: ${sells}%`;
                         },
                     },
                 },
@@ -196,42 +129,148 @@ $(document).ready(function () {
         });
     }
 
-    function prepareLinesData(arrayOfData) {
-        //definisco un oggetto che avra' come key il mese e come value il numero di vendite (inizializzate a 0)
-        var salesForMonth = {
-            January: 0,
-            February: 0,
-            March: 0,
-            April: 0,
-            May: 0,
-            June: 0,
-            July: 0,
-            August: 0,
-            September: 0,
-            October: 0,
-            November: 0,
-            December: 0,
+    function drawLines(arrayFromRequest) {
+        var arrayDataToDraw = prepareDataForLines(arrayFromRequest); //mi ritorna OGGETTO con values tutti gli array da passare alla chart ---> {months: Array(12), amountForMonth: Array(12)}
+        // console.log(arrayDataToDraw, "LINES");
+        var ctx = document.getElementById("lines-chart").getContext("2d");
+        var lineChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: arrayDataToDraw.months,
+                datasets: [
+                    {
+                        data: arrayDataToDraw.amountForMonth,
+                        fill: false, //non riempire area sotto
+                        lineTension: 0, //linee rette
+                        //pallini
+                        pointBackgroundColor: "rgba(255,0,0,1)",
+                        pointBorderColor: "rgba(255,0,0,1)",
+                        pointStyle: "rectRounded",
+                        pointRadius: 5,
+                        //linee
+                        borderColor: "rgba(46, 0, 253, 0.582)", //colore LINEE
+                        borderWidth: 3,
+                    },
+                ],
+            },
+            //arrayDataToDraw.amountForMonth
+            options: {
+                title: {
+                    display: true,
+                    text: "total sales for months",
+                },
+                legend: {
+                    display: false,
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            ticks: {
+                                beginAtZero: true,
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+    }
+
+    function prepareDataForPie(arrayInfo) {
+        var objSalesmanAmount = {},
+            totalSales = 0;
+
+        //estraggo i dati dall'array
+        for (var i = 0; i < arrayInfo.length; i++) {
+            var singleObj = arrayInfo[i]; //{id: 1, salesman: "Marco", amount: 9000, date: "12/02/2017"}
+            //per ogni venditore mi serve il nome e l'amount
+            var salesman = singleObj.salesman,
+                amount = parseInt(singleObj.amount);
+            totalSales += amount;
+
+            //popolo oggetto con vendite totali per ogni venditore
+            objSalesmanAmount[salesman]
+                ? (objSalesmanAmount[salesman] += amount)
+                : (objSalesmanAmount[salesman] = amount);
+        }
+        // console.log(objSalesmanAmount); //{Marco: 27200, Giuseppe: 26010, Riccardo: 33000, Roberto: 32730}
+        //calcolo le vendite di ogni venditore rispetto alle vendite totali (in percentuale)
+        for (var salesman in objSalesmanAmount) {
+            var percentage = (
+                (objSalesmanAmount[salesman] / totalSales) *
+                100
+            ).toFixed(1);
+            objSalesmanAmount[salesman] = percentage;
+        }
+        // console.log(objSalesmanAmount); //{Marco: "22.9", Giuseppe: "21.9", Riccardo: "27.7", Roberto: "27.5"}
+
+        var arraySalesman = Object.keys(objSalesmanAmount);
+        var arrayAmount = Object.values(objSalesmanAmount);
+
+        return {
+            allSalesmans: arraySalesman,
+            amountForSeller: arrayAmount,
         };
-        //estraggo gli oggetti dell'array
-        for (var i = 0; i < arrayOfData.length; i++) {
-            // console.log(singleData);
-            var amount = arrayOfData[i].amount; //numero
-            var date = arrayOfData[i].date; //stringa "04/03/2017"
-            var salesman = arrayOfData[i].salesman; //stringa
-            //utilizzo moment per vedere il mese
-            var month = moment(date, "DD-MM-YYYY");
-            var nameMonth = month.format("MMMM");
-            // console.log(amount, date, salesman, nameMonth);
+    }
 
-            //per ogni oggetto devo incrementare l'amount relativo al mese
-            salesForMonth[nameMonth] += parseInt(amount);
+    function prepareDataForLines(arrayInfo) {
+        // var monthlySales = {
+        //     January: 0,
+        //     February: 0,
+        //     March: 0,
+        //     April: 0,
+        //     May: 0,
+        //     June: 0,
+        //     July: 0,
+        //     August: 0,
+        //     September: 0,
+        //     October: 0,
+        //     November: 0,
+        //     December: 0,
+        // };
+        var monthlySales = {};
 
-            //estraggo le chiavi dall'oggetto salesForMonth per creare l'array che sara' l'asse x della mia chart
-            var months = Object.keys(salesForMonth); //["January", "February", "March", ...]
-            //faccio la stessa cosa per i valori che questa volta sono l'y dei pallini
-            var totalSalesForMonth = Object.values(salesForMonth); //[5960, 15240, 13790, ...]
+        for (var i = 1; i <= 12; i++) {
+            //uso moment per costruire i mesi
+            var date = moment(i, "M").format("MMMM");
+            // e poi vado a popolare il mio oggetto
+            monthlySales[date] = 0;
+            // console.log(monthlySales);
         }
 
-        return { labels: months, data: totalSalesForMonth };
+        //estraggo i dati dall'array
+        for (var i = 0; i < arrayInfo.length; i++) {
+            var singleObj = arrayInfo[i]; //{id: 1, salesman: "Marco", amount: 9000, date: "12/02/2017"}
+            //mi serve il nome del mese(uso moment) e l'amount
+            var amount = parseInt(singleObj.amount),
+                date = singleObj.date,
+                correctDate = moment(date, "DD/MM/YYYY").format("MMMM"); //January
+
+            //incremento le vendite per ogni mese
+            monthlySales[correctDate] += amount;
+        }
+
+        //estraggo gli array delle key e dei values dell'oggetto
+        var arrayMonths = Object.keys(monthlySales); //array nomi mesi (lo uso anche per popolare le options della select)
+        createOptionsSelect(arrayMonths);
+
+        var arraySalesForMonth = Object.values(monthlySales); //array amount per mese
+        return { months: arrayMonths, amountForMonth: arraySalesForMonth };
+    }
+
+    function createOptionsSelect(monthsArray) {
+        $("#months").empty();
+        $("#months").append(
+            `<option value="" style="display: none;" selected disabled value="">Choose Month</option>`
+        );
+        //seleziono la select e aggiungo le options
+        for (var i = 0; i < monthsArray.length; i++) {
+            var numberMonth = i + 1;
+            if (numberMonth < 10) {
+                numberMonth = `0${numberMonth}`;
+            }
+            $("#months").append(
+                `<option value=${numberMonth}>${monthsArray[i]}</option>`
+            );
+        }
     }
 });

@@ -173,7 +173,7 @@ $(document).ready(function () {
             options: {
                 tooltips: {
                     callbacks: {
-                        afterBody: function () {
+                        afterTitle: function () {
                             return `%`; //return a string that you wish to append
                         },
                     },
